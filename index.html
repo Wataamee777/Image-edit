@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像編集ツール</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1980px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 800px;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            margin: 10px;
+        }
+        .drawing-controls {
+            margin-top: 20px;
+        }
+        #canvasWrapper {
+            max-width: 100%;
+            max-height: 800px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>画像編集ツール</h1>
+    <!-- 画像アップロード用のファイル選択 -->
+    <input type="file" id="imageUpload" accept="image/*" />
+    <br>
+    <!-- スタンプアップロード用のファイル選択 -->
+    <input type="file" id="stampUpload" accept="image/*" />
+    
+    <div class="controls">
+        <!-- 各種編集機能ボタン -->
+        <button id="rotate">回転</button>
+        <button id="resize">リサイズ</button>
+        <button id="applyFilter">フィルター適用</button>
+        <button id="download">ダウンロード</button>
+    </div>
+
+    <!-- 描画用のツール -->
+    <div class="drawing-controls">
+        <label for="lineColor">線の色:</label>
+        <input type="color" id="lineColor" value="#000000">
+        <label for="lineWidth">線の太さ:</label>
+        <input type="number" id="lineWidth" value="5" min="1" max="10">
+        <button id="draw">描画モード</button>
+    </div>
+
+    <!-- 画像編集用のCanvas -->
+    <div id="canvasWrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+</div>
+
+<!-- fabric.jsライブラリ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.1/fabric.min.js"></script>
+<script>
+    // Canvasの設定
+    let canvas = new fabric.Canvas('canvas', {
+        width: 1980,  // Canvasの最大幅を1980pxに設定
+        height: 1080, // Canvasの最大高さを1080pxに設定
+        backgroundColor: "#f0f0f0"
+    });
+    let imgElement;
+    let stampElement;
+    let isDrawing = false; // 描画モードかどうか
+    let lineColor = '#000000'; // 初期線の色
+    let lineWidth = 5; // 初期線の太さ
+
+    // 画像をアップロードするイベントリスナー
+    document.getElementById('imageUpload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                fabric.Image.fromURL(event.target.result, (img) => {
+                    imgElement = img;
+                    let scaleFactor = 1;
+                    // 画像が1980x1080を超える場合はスケーリングする
+                    if (img.width > 1980 || img.height > 1080) {
+                        scaleFactor = Math.min(1980 / img.width, 1080 / img.height);
+                    }
+                    img.set({ scaleX: scaleFactor, scaleY: scaleFactor }); // 画像を縮小
+                    canvas.clear(); // 既存の画像をクリア
+                    canvas.setWidth(1980); // Canvasの幅を最大1980pxに設定
+                    canvas.setHeight(1080); // Canvasの高さを最大1080pxに設定
+                    canvas.add(img); // 画像をCanvasに追加
+                    canvas.renderAll(); // 描画更新
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // スタンプ画像をアップロードするイベントリスナー
+    document.getElementById('stampUpload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                fabric.Image.fromURL(event.target.result, (stamp) => {
+                    stampElement = stamp;
+                    stampElement.set({
+                        left: 100,  // 初期位置 (X座標)
+                        top: 100,  // 初期位置 (Y座標)
+                        selectable: true // ドラッグで動かせるようにする
+                    });
+                    canvas.add(stampElement); // スタンプをCanvasに追加
+                    canvas.renderAll(); // 描画更新
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 描画ツール設定
+    document.getElementById('lineColor').addEventListener('input', (e) => {
+        lineColor = e.target.value;
+    });
+
+    document.getElementById('lineWidth').addEventListener('input', (e) => {
+        lineWidth = e.target.value;
+    });
+
+    // 描画モード切替ボタン
+    document.getElementById('draw').addEventListener('click', () => {
+        isDrawing = !isDrawing; // 描画モードのオン/オフ
+        if (isDrawing) {
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush.color = lineColor; // 線の色を設定
+            canvas.freeDrawingBrush.width = parseInt(lineWidth, 10); // 線の太さを設定
+        } else {
+            canvas.isDrawingMode = false;
+        }
+    });
+
+    // 回転ボタンのイベント
+    document.getElementById('rotate').addEventListener('click', () => {
+        if (imgElement) {
+            imgElement.rotate(imgElement.angle + 90); // 90度回転
+            canvas.renderAll(); // 描画更新
+        }
+    });
+
+    // リサイズボタンのイベント
+    document.getElementById('resize').addEventListener('click', () => {
+        if (imgElement) {
+            imgElement.set({
+                width: imgElement.width * 0.5,  // 画像の幅を50%に変更
+                height: imgElement.height * 0.5 // 画像の高さを50%に変更
+            });
+            canvas.renderAll(); // 描画更新
+        }
+    });
+
+    // フィルター適用ボタンのイベント
+    document.getElementById('applyFilter').addEventListener('click', () => {
+        if (imgElement) {
+            imgElement.filters.push(new fabric.Image.filters.Grayscale()); // グレースケールフィルターを追加
+            imgElement.applyFilters(); // フィルターを適用
+            canvas.renderAll(); // 描画更新
+        }
+    });
+
+    // ダウンロードボタンのイベント
+    document.getElementById('download').addEventListener('click', () => {
+        const dataUrl = canvas.toDataURL({ format: 'png' }); // 画像データをPNG形式で取得
+        const a = document.createElement('a');
+        a.href = dataUrl; // ダウンロードリンクを設定
+        a.download = 'edited_image.png'; // ダウンロードするファイル名
+        a.click(); // ダウンロード開始
+    });
+</script>
+
+</body>
+</html>
