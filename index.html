@@ -10,37 +10,71 @@
             text-align: center;
             margin: 0;
             padding: 0;
+            background-color: #e3f2fd; /* 薄い青 */
+            color: #1e88e5; /* 青色 */
         }
         .container {
-            max-width: 1980px;
+            max-width: 100%;
             margin: 0 auto;
             padding: 10px;
         }
         canvas {
-            border: 1px solid #ccc;
+            border: 2px solid #1976d2; /* 濃い青 */
             margin-top: 20px;
             max-width: 100%;
-            max-height: 800px;
+            max-height: 400px;
+            background-color: #ffffff;
         }
-        .controls {
-            margin-top: 20px;
+        .controls, .drawing-controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        button {
-            padding: 10px 15px;
-            margin: 5px;
+        button, input[type="file"], input[type="number"], input[type="color"] {
+            padding: 10px 14px;
+            margin: 8px;
             cursor: pointer;
+            font-size: 16px;
+            width: 80%;
+            max-width: 200px;
+            background-color: #1e88e5; /* ボタンの青色 */
+            color: white;
+            border: none;
+            border-radius: 5px;
         }
-        input[type="file"] {
-            margin: 10px;
+        button:hover {
+            background-color: #1565c0; /* ボタンホバー時の青色 */
         }
-        .drawing-controls {
-            margin-top: 20px;
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .button-group button {
+            width: 48%;
+            margin: 10px 1%;
         }
         #canvasWrapper {
             max-width: 100%;
-            max-height: 800px;
             overflow: hidden;
             margin-bottom: 20px;
+        }
+        label {
+            color: #1e88e5; /* ラベルも青 */
+        }
+        input[type="file"] {
+            background-color: #bbdefb; /* アップロードボタンの背景色を青系 */
+            border-radius: 5px;
+        }
+        @media (min-width: 768px) {
+            canvas {
+                max-height: 800px;
+            }
+            button {
+                width: auto;
+                padding: 12px 20px;
+            }
         }
     </style>
 </head>
@@ -48,6 +82,7 @@
 
 <div class="container">
     <h1>画像編集ツール</h1>
+    
     <!-- 画像アップロード用のファイル選択 -->
     <input type="file" id="imageUpload" accept="image/*" />
     <br>
@@ -56,10 +91,12 @@
     
     <div class="controls">
         <!-- 各種編集機能ボタン -->
-        <button id="rotate">回転</button>
-        <button id="resize">リサイズ</button>
-        <button id="applyFilter">フィルター適用</button>
-        <button id="download">ダウンロード</button>
+        <div class="button-group">
+            <button id="rotate">回転</button>
+            <button id="resize">リサイズ</button>
+            <button id="applyFilter">フィルター適用</button>
+            <button id="download">ダウンロード</button>
+        </div>
     </div>
 
     <!-- 描画用のツール -->
@@ -69,6 +106,11 @@
         <label for="lineWidth">線の太さ:</label>
         <input type="number" id="lineWidth" value="5" min="1" max="10">
         <button id="draw">描画モード</button>
+    </div>
+
+    <!-- スタンプ追加ボタン -->
+    <div class="controls">
+        <button id="addStamp">スタンプ追加</button>
     </div>
 
     <!-- 画像編集用のCanvas -->
@@ -192,10 +234,4 @@
         const dataUrl = canvas.toDataURL({ format: 'png' }); // 画像データをPNG形式で取得
         const a = document.createElement('a');
         a.href = dataUrl; // ダウンロードリンクを設定
-        a.download = 'edited_image.png'; // ダウンロードするファイル名
-        a.click(); // ダウンロード開始
-    });
-</script>
-
-</body>
-</html>
+        a.download = 'edited_image.png'; // ダウンロードする
